@@ -250,13 +250,13 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
 ```
           7         6         5         4         3         2         1         0     
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x03 |    0    |    0    |                            ???                            |
+0x03 |    0    |    0    |     red[5:4]      |               green[7:4]              |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x04 |    0    |    0    |                            ???                            |
+0x04 |    0    |    0    |               blue[7:4]               |     red[7:6]      |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x05 |    0    |    0    |    X    |    X    |    X    |          group sel          |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x06 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+0x06 |    0    |    0    | skpdisp |    X    |    X    |    X    |    X    |    X    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    0    |    0    |    0    |    1    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
@@ -265,8 +265,9 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
 ```
 
 Fields:
-* First two command bytes at 0x03 and 0x04 serve a purpose, but exact details are still under investigation.
+* `green`, `red`, and `blue` is a compacted 12-bit RGB that is copied into CFG0 memory.
 * `group sel`: Changes the group id selection. The new `group sel` value is written to EEPROM and the corresponding new `group id` is read from EEPROM at the selected offset.
+* `skpdisp` When set to 1, the PixMob will be "silent" and not display the color when the command is received. Otherwise, when set to 0, the color will be briefly displayed at the time the command is received.
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
 
 > [!NOTE]
@@ -281,13 +282,13 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
 ```
           7         6         5         4         3         2         1         0     
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x03 |    0    |    0    |                            ???                            |
+0x03 |    0    |    0    |     red[5:4]      |               green[7:4]              |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x04 |    0    |    0    |                            ???                            |
+0x04 |    0    |    0    |               blue[7:4]               |     red[7:6]      |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x05 |    0    |    0    |    X    |    X    |    X    |          group sel          |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x06 |    0    |    0    |    X    |                  new group id                   |
+0x06 |    0    |    0    | skpdisp |                  new group id                   |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    0    |    0    |    1    |    0    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
@@ -296,9 +297,10 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
 ```
 
 Fields:
-* First two command bytes at 0x03 and 0x04 serve a purpose, but exact details are still under investigation.
+* `green`, `red`, and `blue` is a compacted 12-bit RGB that is copied into CFG0 memory.
 * `group sel`: Selects which of the eight `group sel * id`s to change in the EEPROM.
 * `new group id`: The new 5-bit group ID to write into the EEPROM.
+* `skpdisp` When set to 1, the PixMob will be "silent" and not display the color when the command is received. Otherwise, when set to 0, the color will be briefly displayed at the time the command is received.
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
 
 > [!WARNING]
