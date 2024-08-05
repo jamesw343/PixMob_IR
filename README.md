@@ -2,18 +2,20 @@
 
 ## Introduction
 
-The reverse engineering in this repository efforts were primarily performed on a PixMob PALM v2.6r1 (c) 20230629. 
+The reverse engineering in this repository efforts were primarily performed on a PixMob PALM v2.6r1 (c) 20230629 and PixMob VIC v2.3r1 (c) 20211206.
+
 
 ## EEPROM
 The EEPROM on my PixMob PALM v2.6r1 (c) 20230629 was marked `24C02`, which is a 2Kbit (256 x 8 bits) I2C chip.
 
+### EEPROM Layout
 Only the first 88 bytes of the EEPROM are used to store information. The remaining 168 bytes are left blank (0xFF) and not touched by the firmware.
 
 The high-level layout of the EEPROM is as follows (each cell in the diagram is 8 bits / 1 byte):
 ```
              0x00                0x01                0x02                0x03        
      +-------------------+-------------------+-------------------+-------------------+
-0x00 |       magic       |     group sel     |       ????        |       ????        |
+0x00 |       magic       |     group sel     | post-release time |       ????        |
      +-------------------+-------------------+-------------------+-------------------+
 0x04 |     on start      |       ????        |       ????        |       ????        |
      +-------------------+-------------------+-------------------+-------------------+
@@ -62,17 +64,76 @@ The high-level layout of the EEPROM is as follows (each cell in the diagram is 8
 Fields:
 * `magic`: A constant  value that  is specific to the firmware running on the PixMob's MCU. An unexpected value here will cause the MCU to set the EEPROM back to factory defaults.
 * `group sel`: Indirect [group id](#ir-command-fields-group-id) selection. The lower 3 bits selects one of eight `group sel [0-7] id` fields.
+* `post-release time`: Defines the LED post-release hold time with a 16ms step. For example, a value of 0x1E would be 480ms.
 * `group sel [0-7] id`: The lower 5 bits select the [group id](#ir-command-fields-group-id) the PixMob unit is a part of.
 * `on start`: When set to 0x11, will enable the "on-start" effect. This effect will cause the PixMob to start displaying colors as soon as it receives power, without needing to receive any IR commands.
 * `profile [0-15]`: Defines 16 RGB color profiles that the MCU can access without needing to receive an IR command. The green, red, and blue fields hold the RGB values 0-255. The checksum field is 8 lower bits of the sum of green+red+blue.
 * `static green`, `static red`, and `static blue`: Defines a special RGB profile that is used in static mode (see below). There is no checksum for the static RGB profile.
-* `attack`, `sustain`, and `release`: Defines the LED fade-in time, hold time, and fade-out time, respectively, in 16-millisecond intervals. Used by the "on-start" effect. For example, a value of 0x1E would be 480ms.
+* `attack`, `sustain`, and `release`: Defines the LED fade-in time, hold time, and fade-out time, respectively, with a 16ms step. Used by the "on-start" effect. For example, a value of 0x1E would be 480ms.
 * `profile range`: Defines the lower and upper bounds on the profile id when running in sequential and random mode (see below). The lower 4 bits of this field is the lower bound profile id, while the upper 4 bits of this field is the upper bound profile id.
 * `mode`: Mode for the "on-start" effect. If "on-start" effect is not enabled (via the `on start` field), this field is ignored and nothing will happen when the PixMob receives power.
   * Static (0x00): Cycle the same RGB value defined by `static green`, `static red`, and `static blue`. `attack`, `sustain`, and `release` values are honored, but `profile range` is ignored.
   * Sequential (0x02): Cycle the profiles starting at the lower bound profile id defined by `profile range` up to the upper bound profile id defined by `profile range`, then repeat starting back at the lower bound.
   * Random (0x06): Cycle the profiles, each time picking a random profile id between the lower and upper bound profile ids defined by `profile range`.
   * Further use of the remaining possible values are still under investigation.
+
+
+### EEPROM Factory Defaults
+An unexpected `magic` value will cause the MCU to reset the EEPROM to factory defaults.
+
+On the newer PixMob PALM v2.6r1 and PixMob VIC v2.3r1 with 24C02 EEPROMs with `magic=0x09`:
+
+```
+0x09 0x00 0x00 0x01
+0x00 0x00 0x00 0x00
+0x01 0x01 0x01 0x01
+0x01 0x01 0x01 0x01
+0x00 0xBF 0x00 0xBF
+0x00 0xBF 0x60 0x1F
+0x00 0x60 0xBF 0x1F
+0x00 0x00 0xBF 0xBF
+0xBF 0x00 0xBF 0x7E
+0xBF 0x00 0x00 0xBF
+0xBF 0xBF 0x00 0x7E
+0x60 0xBF 0x00 0x1F
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0xBF 0xBF 0xBF 0x3D
+0x00 0x00 0x00 0x1E
+0x1E 0x1E 0x70 0x06
+```
+
+On the older PixMob VIC v2.3r1 with AKI** EEPROMS with `magic=0x07`:
+
+```
+0x07 0x00 0x00 0x01
+0x00 0x00 0x00 0x00
+0x01 0x01 0x01 0x01
+0x01 0x01 0x01 0x01
+0x00 0xCC 0x00 0xCC
+0x00 0xCC 0x66 0x32
+0x00 0x66 0xCC 0x32
+0x00 0x00 0xCC 0xCC
+0xCC 0x00 0xCC 0x98
+0xCC 0x00 0x00 0xCC
+0xCC 0xCC 0x00 0x98
+0x66 0xCC 0x00 0x32
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0x00 0x00 0x00 0x00
+0xCC 0xCC 0xCC 0x64
+0x00 0x00 0x00 0x1E
+0x1E 0x1E 0x70 0x06
+```
 
 
 ## MCU RAM
@@ -83,11 +144,68 @@ The 8 bytes at EEPROM address 0x50 to 0x57 collectively form a RGB config struct
 * CFG1: The "active" config. When the PixMob is ready to display a color, data is generally copied into CFG1 either from CFG0 or CFG2. The PWM cycles are then based off CFG1.
 * CFG2: The "storage" config. During initial power-on, data from the EEPROM at 0x50-0x57 are copied into CFG2.
 
+The last byte of each RGB config struct contains the mode flags:
+```
+     7         6         5         4         3         2         1         0     
++---------+---------+---------+---------+---------+---------+---------+---------+
+|   ???   |   ???   |   ???   | prcsel  |   ???   | random  | dynamic |  pren   |
++---------+---------+---------+---------+---------+---------+---------+---------+
+```
+
+Fields:
+* `pren`: When set to 1'b1, enables the [post-release phase in the LED phase FSM](#led-phase-post-release).
+* `dynamic`: When set to 1'b1, causes colors to be selected based off the `profile range` configuration. Otherwise, when set to 1'b0, the only color used is configured by the `static green`, `static red`, and `static blue` fields.
+* `random`: When set to 1'b1, causes profiles to be selected at random. Otherwise, profiles are select sequentially. Has no effect when `dynamic=1'b0`.
+* `prcsel`: Selects between rgb(0, 0, 0) or the global post-release color.
+
 
 ### Global Sustain Time (GST): 
 This is a single 8-bit value that is occasionally used to override the sustain timer. Like other timers, each step represents a 16ms time increment.
 
 During initial power-on, the GST is initialized to be 0x1E (480ms). It can then be updated through the [set GST IR command](#ir-command-set-gst).
+
+
+### Global Post-Release Color
+This is a 3-byte RGB value used to define the post-release color in certain situations (refer to the [LED Phase FSM](#led-phase-fsm) for more details).
+
+
+## LED Phase FSM
+Displaying a color on the PixMob goes through several states in a LED phase FSM:
+
+### LED Phase: Init
+If dynamic mode is enabled, read the RGB values of the next profile (either random or sequential profile ids) from EEPROM and store them into CFG1 memory. Otherwise, the current RGB values in CFG1 memory are used.
+
+Next phase: [LED Phase: Attack](#led-phase-attack)
+
+
+### LED Phase: Attack
+Over a period defined by the attack time in CFG1, transition the last-displayed LED color to color defined in CFG1 memory. If the last displayed color is rgb(0, 0, 0), this creates a fade-in effect. Otherwise, for non-zero rgb values, this creates a smooth transition from one color to the next.
+
+Next phase: [LED Phase: Sustain](#led-phase-sustain)
+
+
+### LED Phase: Sustain
+Over a period defined by the sustain time in CFG1, display the color defined in CFG1 memory.
+
+Next phase: [LED Phase: Release](#led-phase-release)
+
+
+### LED Phase: Release
+Over a period defined by the release time in CFG1, transition the LED from the color defined in CFG1 memory to the post-release color.
+
+If the `prcsel=1'b1` from CFG1 mode settings, the post-release color is defined as rgb(0, 0, 0) which turns the LED off. Otherwise, if `prcsel=1'b0`, the post-release color is taken from the [global post-release color memory](#global-post-release-color).
+
+A fade-out effect is created when the post-release color is rgb(0, 0, 0). If the post-release color is non-zero and different from the CFG1 color, there is a smooth transition between the two colors. Finally, if the post-release color is the same as the CFG1 color, then the color is maintained with no visible effect.
+
+Next phase: If post-release phase is enabled by CFG1 mode settings (`pren=1'b1`), [LED Phase: Post-Release](#led-phase-post-release), otherwise [LED Phase: Init](#led-phase-init).
+
+
+### LED Phase: Post-Release
+Over a period defined by the post-release time in EEPROM, display the post-release color.
+
+If the `prcsel=1'b1` from CFG1 mode settings, the post-release color is defined as rgb(0, 0, 0) which turns the LED off. Otherwise, if `prcsel=1'b0`, the post-release color is taken from the [global post-release color memory](#global-post-release-color).
+
+Next phase: [LED Phase: Init](#led-phase-init)
 
 
 ## IR Commands
@@ -179,7 +297,7 @@ Flags: `type=2'b00`, `/rgb=1'b0`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |           release           |           sustain           |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x08 |    0    |    0    |                     restrict group id                     |
+0x08 |    0    |    0    |  spren  |                restrict group id                |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
@@ -187,6 +305,7 @@ Fields:
 * `attack`, `sustain`, and `release`: See [IR Command Fields: Attack, Sustain, and Release](#ir-command-fields-attack-sustain-and-release)
 * `chance`: See [IR Command Fields: Chance](#ir-command-fields-chance)
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
+* `spren`: If equal to 1'b1, set the post-release enable bit in CFG0 mode configuration flags.
 
 ### IR Command: Color 1 Rapidly Followed by Color 2
 Color 1 is briefly displayed for approximately 25ms with no attack or release timers (these intervals are not user-configurable), followed by Color 2 for a slightly longer period. The RGB values of Color 2 are saved in CFG0 memory.
@@ -231,14 +350,14 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    0    |    0    |    0    |    0    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x08 |    0    |    0    |                     restrict group id                     |
+0x08 |    0    |    0    |    X    |                restrict group id                |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
 Fields:
 * `skpdisp` When set to 1, the PixMob will be "silent" and not display the color when the command is received. Otherwise, when set to 0, the color will be briefly displayed at the time the command is received.
-* `/save`: When set to 1'b0, the color profile is saved to the EEPROM at the specified profile id. Otherwise, when set to 1'b1, the color profile is stored elsewhere in memory (exact use case still under investigation).
-* `profile id`: The index of the profile within EEPROM to save to. Valid values are 0 to 15.
+* `/save`: When set to 1'b0, the color profile is saved to the EEPROM at the specified profile id. Otherwise, when set to 1'b1, the RGB values are stored saved to the [global post-release color](#global-post-release-color) in MCU memory.
+* `profile id`: The index of the profile within EEPROM to save to. Valid values are 0 to 15. Ignored when `/save=1'b1`.
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
 
 
@@ -260,7 +379,7 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    0    |    0    |    0    |    1    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x08 |    0    |    0    |                     restrict group id                     |
+0x08 |    0    |    0    |    X    |                restrict group id                |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
@@ -292,7 +411,7 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    0    |    0    |    1    |    0    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x08 |    0    |    0    |                     restrict group id                     |
+0x08 |    0    |    0    |    X    |                restrict group id                |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
@@ -308,6 +427,60 @@ Fields:
 
 Special Cases:
 * If `new group id=0`, the command will be discarded and nothing changed in EEPROM.
+
+
+### IR Command: Set Post-Release Time
+Set the LED post-release phase time. The corresponding value is also saved to EEPROM.
+
+Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+
+```
+          7         6         5         4         3         2         1         0     
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x03 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x04 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x05 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x06 |    0    |    0    |    X    |    X    |    X    |      post-release time      |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x07 |    0    |    0    |    0    |    0    |    0    |    1    |    1    |    1    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x08 |    0    |    0    |    X    |                restrict group id                |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+```
+
+Fields:
+* `post-release time`: Time to spend in the LED post-release phase. Has the same lookup key as [IR Command Fields: Attack, Sustain, and Release](#ir-command-fields-attack-sustain-and-release).
+* `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
+
+
+### IR Command: Write to EEPROM address 0x03
+Writes the specified data to EEPROM address 0x03. Exact functionality of this field is still under investigation.
+
+Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+
+```
+          7         6         5         4         3         2         1         0     
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x03 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x04 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x05 |    0    |    0    |                         data[4:0]                         |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x06 |    0    |    0    |    X    |    X    |    X    |    X    |     data[6:5]     |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x07 |    0    |    0    |    0    |    0    |    1    |    0    |    0    |    0    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x08 |    0    |    0    |    X    |                restrict group id                |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+```
+
+Fields:
+* `data`: Data to be written to EEPROM address 0x03. Details still under investigation.
+* `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
 
 
 ### IR Command: Set GST
@@ -328,7 +501,7 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    1    |    0    |    0    |    1    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x08 |    0    |    0    |                     restrict group id                     |
+0x08 |    0    |    0    |    X    |                restrict group id                |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
@@ -344,6 +517,32 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
 | 3'b101 |          960        |
 | 3'b110 |        2,400        |
 | 3'b111 |        3,840        |
+
+
+### IR Command: LED Off and Reset
+Interrupt the current operation; turn off LEDs; clear CFG0, CFG1, and CFG2; and optionally, reset certain global settings.
+
+Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+
+```
+          7         6         5         4         3         2         1         0     
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x03 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x04 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x05 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x06 |    0    |    0    |  /grst  |    X    |    X    |    X    |    X    |    X    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x07 |    0    |    0    |    0    |    0    |    1    |    1    |    1    |    1    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x08 |    0    |    0    |    X    |                restrict group id                |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+```
+
+Fields:
+* `/grst`: When set to 1'b0, in addition to turning off LEDs and clearing the CFG memories, the [global post-release color](#global-post-release-color) is cleared, the EEPROM data at addresses 0x02 and 0x03 are reset back to zero (post-reset time and currently-unknown field), and the [global sustain time](#global-sustain-time-gst) is reset to 480ms.
 
 
 ### IR Command Fields: Attack, Sustain, and Release
@@ -387,10 +586,10 @@ Special Cases:
 * If `group id=5'd0`, then `group id` is set to 5'd1 before checking for a matching group.
 
 
-### IR Command Encoding
+### IR Command Encoding & Checksum Calculation
 A lookup table is used to transform a 6-bit command byte into an 8-bit encoded command byte.
 
-The lower 6 bits of each command byte are used to index into the following table:
+Starting from the command byte at offset 0x02, the lower 6 bits of each command byte are used to index into the following table:
 
 ```c
 0x21, 0x32, 0x54, 0x65, 0xa9, 0x9a, 0x6d, 0x29, /* 0x00 - 0x07 */
@@ -408,9 +607,40 @@ The primary purpose of this encoding is likely to minimize the number of consecu
 > [!NOTE]
 > The magic constant at command offset 0x00 is NOT encoded!
 
+After encoding all command bytes except the magic constant at 0x00 and checksum at 0x01, the partial checksum can be calculated by summing the encoded command bytes. The final checksum is found by taking the upper 6 bits of the partial checksum and indexing into the encoding table above.
 
-### Checksum Calculation
-A partial checksum is first calculated by summing the values of the **encoded** command bytes, starting at offset 0x02 until the end of the command.
+For example, suppose we want to send a [Display Single Color](#ir-command-display-single-color) command with rgb(0, 252, 192). The pre-encoded command would be:
+```c
+0x00: 1000 0000  /* magic constant                  */
+0x01: XXXX XXXX  /* checksum to be calculated later */
+0x02: 0000 0000  /* no command flags set            */
+0x03: 0011 1111  /* green value msbs                */
+0x04: 0000 0000  /* red value msbs                  */
+0x05: 0011 0000  /* blue value msbs                 */
+```
 
-The upper 6 bits of the partial checksum are then used to index into the [IR command encoding table](#ir-command-encoding), with the resulting 8-bit value being used as the final checksum.
+After applying the initial encoding to command bytes 0x02 through 0x05:
+```c
+0x00: 1000 0000  /* magic constant                  */
+0x01: XXXX XXXX  /* checksum to be calculated later */
+0x02: 0010 0001  /* tbl[6'b000000] = 8'b00100001    */
+0x03: 0010 0110  /* tbl[6'b111111] = 8'b00100110    */
+0x04: 0010 0001  /* tbl[6'b000000] = 8'b00100001    */
+0x05: 0101 1010  /* tbl[6'b110000] = 8'b01011010    */
+```
 
+Now, the partial checksum can be calculated as `8'b00100001 + 8'b00100110 + 8'b00100001 + 8'b01011010 = 8'b11000010`. Index into the encoding table using the 6 upper bits of the partial checksum to get the final checksum: `checksum = tbl[6'b110000] = 8'b01011010`.
+
+The final encoded command with checksum then is:
+```c
+0x00: 1000 0000
+0x01: 0101 1010
+0x02: 0010 0001
+0x03: 0010 0110
+0x04: 0010 0001
+0x05: 0101 1010
+```
+
+The IR transmission starts from the least significant bit of the command and contiues through the encoded command bytes. Leading and trailing zeroes may optionally be removed, since there is no way for the IR receiver to distinguish a zero that is not surrounded by ones.
+
+The final IR sequence would be: `[1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1]` (the leading `0, 0, 0, 0, 0, 0, 0` from the magic constant and trailing `0` from encoded command byte 0x05 bit 7 was removed).
