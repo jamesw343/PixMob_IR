@@ -211,7 +211,7 @@ Next phase: [LED Phase: Init](#led-phase-init)
 ## IR Commands
 
 ### IR Command Header
-All PixMob IR commands begin with the same 3-byte header, with the first byte being a magic constant, the second byte being [a computed checksum](#checksum-calculation), and the third byte containing a series of flags that determine the format of the command body.
+All PixMob IR commands begin with the same 3-byte header, with the first byte being a magic constant, the second byte being [a computed checksum](#ir-command-encoding--checksum-calculation), and the third byte containing a series of flags that determine the format of the command body.
 
 ```
           7         6         5         4         3         2         1         0     
