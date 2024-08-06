@@ -468,9 +468,9 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x04 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x05 |    0    |    0    |                         data[4:0]                         |
+0x05 |    0    |    0    |                         data[5:0]                         |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x06 |    0    |    0    |    X    |    X    |    X    |    X    |     data[6:5]     |
+0x06 |    0    |    0    |    X    |    X    |    X    |    X    |     data[7:6]     |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    1    |    0    |    0    |    0    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
@@ -583,7 +583,7 @@ Chance refers to the probability that the command will be executed. The mapping 
 IR commands with a group id will restrict execution of the command only to PixMob devices in the matching group (determined by data in the EEPROM).
 
 Special Cases:
-* If `group id=5'd0`, then `group id` is set to 5'd1 before checking for a matching group.
+* If `group id=0`, then the command is executed regardless of PixMob's current group id or group sel.
 
 
 ### IR Command Encoding & Checksum Calculation
