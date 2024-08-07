@@ -341,7 +341,7 @@ class CommandSingleColorExt(Command):
         'sustain':          _Field([_FieldFragment(byte=7, offset=0, width=3)], Time, default=Time.TIME_480_MS),
         'release':          _Field([_FieldFragment(byte=7, offset=3, width=3)], Time, default=Time.TIME_480_MS),
         'group_id':         _Field([_FieldFragment(byte=8, offset=0, width=5)], int, default=0),
-        'set_post_release': _Field([_FieldFragment(byte=8, offset=5, width=1)], bool, default=False),
+        'enable_repeat':    _Field([_FieldFragment(byte=8, offset=5, width=1)], bool, default=False),
     }
 
     def _validate_fields(self):
@@ -393,7 +393,7 @@ class CommandSetColor(Command):
         'red':              _Field([_FieldFragment(byte=4, offset=0, width=6, src_offset=2)], int),
         'blue':             _Field([_FieldFragment(byte=5, offset=0, width=6, src_offset=2)], int),
         'profile_id':       _Field([_FieldFragment(byte=6, offset=0, width=4)], int, default=0),
-        'nsave_eeprom':     _Field([_FieldFragment(byte=6, offset=4, width=1)], bool, default=False),
+        'is_background':    _Field([_FieldFragment(byte=6, offset=4, width=1)], bool, default=False),
         'skip_display':     _Field([_FieldFragment(byte=6, offset=5, width=1)], bool, default=False),
         'group_id':         _Field([_FieldFragment(byte=8, offset=0, width=5)], int, default=0),
     }
@@ -438,29 +438,32 @@ class CommandSetGroupId(Command):
         assert self._field_values['new_group_id'] > 0
 
 
-class CommandSetPostReleaseTime(Command):
+class CommandSetRepeatDelayTime(Command):
     _num_bytes  = 9
     _flags_type = 0b111
     _action_id  = 7
     _fields = {
         'on_start':         _Field([_FieldFragment(byte=2, offset=0, width=1)], bool, default=True, read_only=True),
         'gst_enable':       _Field([_FieldFragment(byte=2, offset=4, width=1)], bool, default=False),
-        'post_release':     _Field([_FieldFragment(byte=6, offset=0, width=3)], Time),
+        'repeat_delay':     _Field([_FieldFragment(byte=6, offset=0, width=3)], Time),
         'group_id':         _Field([_FieldFragment(byte=8, offset=0, width=5)], int, default=0),
     }
 
 
-class CommandSetEEPROM3(Command):
+class CommandSetRepeatCount(Command):
     _num_bytes  = 9
     _flags_type = 0b111
     _action_id  = 8
     _fields = {
         'on_start':         _Field([_FieldFragment(byte=2, offset=0, width=1)], bool, default=True, read_only=True),
         'gst_enable':       _Field([_FieldFragment(byte=2, offset=4, width=1)], bool, default=False),
-        'eeprom_data':      _Field([_FieldFragment(byte=5, offset=0, width=6),
+        'repeat_count':     _Field([_FieldFragment(byte=5, offset=0, width=6),
                                     _FieldFragment(byte=6, offset=0, width=2, src_offset=6)], int),
         'group_id':         _Field([_FieldFragment(byte=8, offset=0, width=5)], int, default=0),
     }
+
+    def _validate_fields(self):
+        assert self._field_values['repeat_count'] <= 255 # Max value that fits into 1 byte
 
 
 class CommandSetGlobalSustainTime(Command):

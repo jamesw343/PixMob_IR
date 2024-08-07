@@ -15,9 +15,9 @@ The high-level layout of the EEPROM is as follows (each cell in the diagram is 8
 ```
              0x00                0x01                0x02                0x03        
      +-------------------+-------------------+-------------------+-------------------+
-0x00 |       magic       |     group sel     | post-release time |       ????        |
+0x00 |       magic       |     group sel     |   repeat delay    |   repeat count    |
      +-------------------+-------------------+-------------------+-------------------+
-0x04 |     on start      |       ????        |       ????        |       ????        |
+0x04 |     on start      |     NOT USED      |     NOT USED      |     NOT USED      |
      +-------------------+-------------------+-------------------+-------------------+
 0x08 |  group sel 0 id   |  group sel 1 id   |  group sel 2 id   |  group sel 3 id   |
      +-------------------+-------------------+-------------------+-------------------+
@@ -64,7 +64,8 @@ The high-level layout of the EEPROM is as follows (each cell in the diagram is 8
 Fields:
 * `magic`: A constant  value that  is specific to the firmware running on the PixMob's MCU. An unexpected value here will cause the MCU to set the EEPROM back to factory defaults.
 * `group sel`: Indirect [group id](#ir-command-fields-group-id) selection. The lower 3 bits selects one of eight `group sel [0-7] id` fields.
-* `post-release time`: Defines the LED post-release hold time with a 16ms step. For example, a value of 0x1E would be 480ms.
+* `repeat delay`: Defines the LED repeat delay phase time with a 16ms step. For example, a value of 0x1E would be 480ms. If repeat is enabled, the PixMob will display the background color (or no color) between repeats of the command color.
+* `repeat count`: Defines the number of times a color is repeated after receiving a command with repeat mode enabled.
 * `group sel [0-7] id`: The lower 5 bits select the [group id](#ir-command-fields-group-id) the PixMob unit is a part of.
 * `on start`: When set to 0x11, will enable the "on-start" effect. This effect will cause the PixMob to start displaying colors as soon as it receives power, without needing to receive any IR commands.
 * `profile [0-15]`: Defines 16 RGB color profiles that the MCU can access without needing to receive an IR command. The green, red, and blue fields hold the RGB values 0-255. The checksum field is 8 lower bits of the sum of green+red+blue.
@@ -148,15 +149,15 @@ The last byte of each RGB config struct contains the mode flags:
 ```
      7         6         5         4         3         2         1         0     
 +---------+---------+---------+---------+---------+---------+---------+---------+
-|   ???   |   ???   |   ???   | prcsel  |   ???   | random  | dynamic |  pren   |
+|   ???   |   ???   |   ???   |  /bgen  |   ???   | random  | dynamic |  rpen   |
 +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
 Fields:
-* `pren`: When set to 1'b1, enables the [post-release phase in the LED phase FSM](#led-phase-post-release).
+* `rpen`: When set to 1'b1, enables LED color repeat.
 * `dynamic`: When set to 1'b1, causes colors to be selected based off the `profile range` configuration. Otherwise, when set to 1'b0, the only color used is configured by the `static green`, `static red`, and `static blue` fields.
 * `random`: When set to 1'b1, causes profiles to be selected at random. Otherwise, profiles are select sequentially. Has no effect when `dynamic=1'b0`.
-* `prcsel`: Selects between rgb(0, 0, 0) or the global post-release color.
+* `/bgen`: When set to 1'b0, the configured background color will be displayed during the LED init and repeat delay phases. Otherwise, the LED is turned off during these phases.
 
 
 ### Global Sustain Time (GST): 
@@ -165,15 +166,17 @@ This is a single 8-bit value that is occasionally used to override the sustain t
 During initial power-on, the GST is initialized to be 0x1E (480ms). It can then be updated through the [set GST IR command](#ir-command-set-gst).
 
 
-### Global Post-Release Color
-This is a 3-byte RGB value used to define the post-release color in certain situations (refer to the [LED Phase FSM](#led-phase-fsm) for more details).
-
-
 ## LED Phase FSM
 Displaying a color on the PixMob goes through several states in a LED phase FSM:
 
 ### LED Phase: Init
+The PixMob LED FSM remains in the init phase until it is ready to display the next color (either the on-start effect is enabled, a new command is received, or if repeat is enabled and the current repeat count is less than `repeat count` from the EEPROM).
+
 If dynamic mode is enabled, read the RGB values of the next profile (either random or sequential profile ids) from EEPROM and store them into CFG1 memory. Otherwise, the current RGB values in CFG1 memory are used.
+
+If a background color was previously set, it will continue to display until the end of the init phase.
+
+If the PixMob remains in this phase for approximately 60 seconds with no new commands being received, there is a timeout where the LEDs are turned off and the MCU goes into sleep / power saving mode.
 
 Next phase: [LED Phase: Attack](#led-phase-attack)
 
@@ -191,19 +194,21 @@ Next phase: [LED Phase: Release](#led-phase-release)
 
 
 ### LED Phase: Release
-Over a period defined by the release time in CFG1, transition the LED from the color defined in CFG1 memory to the post-release color.
+Over a period defined by the release time in CFG1, transition the LED from the color defined in CFG1 memory to either the background color (when `/bgen=1'b0`) or OFF (when `/bgen=1'b1`).
 
-If the `prcsel=1'b1` from CFG1 mode settings, the post-release color is defined as rgb(0, 0, 0) which turns the LED off. Otherwise, if `prcsel=1'b0`, the post-release color is taken from the [global post-release color memory](#global-post-release-color).
+A fade-out effect is created when `/bgen=1'b1` or the background color is rgb(0, 0, 0). If the background color is non-zero and different from the CFG1 color, there is a smooth transition between the two colors. Finally, if the background color is the same as the CFG1 color, then the color is maintained with no visible effect.
 
-A fade-out effect is created when the post-release color is rgb(0, 0, 0). If the post-release color is non-zero and different from the CFG1 color, there is a smooth transition between the two colors. Finally, if the post-release color is the same as the CFG1 color, then the color is maintained with no visible effect.
+If the release time is configured to be zero, then the saved background color is overridden to be the current color defined in CFG1 memory.
 
-Next phase: If post-release phase is enabled by CFG1 mode settings (`pren=1'b1`), [LED Phase: Post-Release](#led-phase-post-release), otherwise [LED Phase: Init](#led-phase-init).
+If a background color was set, it will continue to display after the release phase ends.
+
+Next phase: If the LED repeat is enabled by CFG1 mode settings (`rpen=1'b1`), [LED Phase: Repeat Delay](#led-phase-repeat-delay), otherwise [LED Phase: Init](#led-phase-init).
 
 
-### LED Phase: Post-Release
-Over a period defined by the post-release time in EEPROM, display the post-release color.
+### LED Phase: Repeat Delay
+Do nothing for a period of time defined by the repeat delay time in EEPROM. This phase serves as a brief delay between repeat cycles of the same color.
 
-If the `prcsel=1'b1` from CFG1 mode settings, the post-release color is defined as rgb(0, 0, 0) which turns the LED off. Otherwise, if `prcsel=1'b0`, the post-release color is taken from the [global post-release color memory](#global-post-release-color).
+If a background color was previously set by the release phase, this color will continue to display both during and after this phase.
 
 Next phase: [LED Phase: Init](#led-phase-init)
 
@@ -230,28 +235,6 @@ Fields:
 * `gsten`: At least one of its functions is to override the sustain time from [GST memory](#global-sustain-time-gst). Exact details still under investigation.
 * `type`: In conjunction with the total length of the command, determines the format of the command body.
 * `onstrt`: Set to 1'b1 to enable (or keep enabled) the "on-start" effect. If the "on-start" effect is currently enabled and a command is received with `onstrt=0`, the "on-start" effect will be disabled.
-
-
-### IR Command: Set Cycle Options
-Set color profile cycle options into CFG0 memory. If flags `onstrt=1'b1`, the updated CFG0 memory is also saved to the EEPROM.
-
-Flags: `type=3'b001`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
-
-```
-          7         6         5         4         3         2         1         0     
-     +---------+---------+---------+---------+---------+---------+---------+---------+
-0x03 |    0    |    0    |                    profile range[5:0]                     |
-     +---------+---------+---------+---------+---------+---------+---------+---------+
-0x04 |    0    |    0    |           attack            | random  |profile range[7:6] |
-     +---------+---------+---------+---------+---------+---------+---------+---------+
-0x05 |    0    |    0    |           release           |           sustain           |
-     +---------+---------+---------+---------+---------+---------+---------+---------+
-```
-
-Fields:
-* `profile range`: Split between command bytes 0x03 and 0x04. Same format as `profile range` in EEPROM.
-* `random`: Enables random cycling mode when set to 1'b1, otherwise cycling is sequential.
-* `attack`, `sustain`, and `release`: See [IR Command Fields: Attack, Sustain, and Release](#ir-command-fields-attack-sustain-and-release)
 
 
 ### IR Command: Display Single Color
@@ -296,7 +279,7 @@ Flags: `type=3'b000`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gs
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |           release           |           sustain           |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x08 |    0    |    0    |  spren  |                restrict group id                |
+0x08 |    0    |    0    |  rpen   |                restrict group id                |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
@@ -304,9 +287,10 @@ Fields:
 * `attack`, `sustain`, and `release`: See [IR Command Fields: Attack, Sustain, and Release](#ir-command-fields-attack-sustain-and-release)
 * `chance`: See [IR Command Fields: Chance](#ir-command-fields-chance)
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
-* `spren`: If equal to 1'b1, set the post-release enable bit in CFG0 mode configuration flags.
+* `rpen`: If equal to 1'b1, enables LED repeat mode in CFG0. The color will be repeated `repeat count` (taken from EEPROM, set via another command) times with a delay of `repeat delay` (also stored in EEPROM and set via another command) between each repeat.
 
-### IR Command: Color 1 Rapidly Followed by Color 2
+
+### IR Command: Display Two Colors
 Color 1 is briefly displayed for approximately 25ms with no attack or release timers (these intervals are not user-configurable), followed by Color 2 for a slightly longer period. The RGB values of Color 2 are saved in CFG0 memory.
 
 The attack and release timers on Color 2 are always set at 32ms. If `gsten=1'b1`, then the sustain time for Color 2 is set from [GST memory](#global-sustain-time-gst). Otherwise, sustain time for Color 2 is set at 384ms.
@@ -331,8 +315,30 @@ Flags: `type=3'b010`, `onstrt=1'b0`, `gsten=1'bX`
 ```
 
 
-### IR Command: Set Color Profile
-Set RGB color profile.
+### IR Command: Set Config
+Set configuration options into CFG0 memory. Will also enable the dynamic mode flag in CFG0 mode. If flags `onstrt=1'b1`, the updated CFG0 memory is also saved to the EEPROM.
+
+Flags: `type=3'b001`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
+
+```
+          7         6         5         4         3         2         1         0     
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x03 |    0    |    0    |                    profile range[5:0]                     |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x04 |    0    |    0    |           attack            | random  |profile range[7:6] |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x05 |    0    |    0    |           release           |           sustain           |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+```
+
+Fields:
+* `profile range`: Split between command bytes 0x03 and 0x04. Same format as `profile range` in EEPROM.
+* `random`: Enables random cycling mode when set to 1'b1, otherwise cycling is sequential.
+* `attack`, `sustain`, and `release`: See [IR Command Fields: Attack, Sustain, and Release](#ir-command-fields-attack-sustain-and-release)
+
+
+### IR Command: Set Color
+Set RGB color to either a color profile in EEPROM or set the background color in memory.
 
 Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
@@ -345,7 +351,7 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x05 |    0    |    0    |                         blue[7:2]                         |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x06 |    0    |    0    | skpdisp |  /save  |              profile id               |
+0x06 |    0    |    0    | skpdisp |  setbg  |              profile id               |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    0    |    0    |    0    |    0    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
@@ -355,12 +361,12 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 Fields:
 * `skpdisp` When set to 1, the PixMob will be "silent" and not display the color when the command is received. Otherwise, when set to 0, the color will be briefly displayed at the time the command is received.
-* `/save`: When set to 1'b0, the color profile is saved to the EEPROM at the specified profile id. Otherwise, when set to 1'b1, the RGB values are stored saved to the [global post-release color](#global-post-release-color) in MCU memory.
-* `profile id`: The index of the profile within EEPROM to save to. Valid values are 0 to 15. Ignored when `/save=1'b1`.
+* `setbg`: When set to 1'b0, the color profile is saved to the EEPROM at the specified profile id. Otherwise, when set to 1'b1, the RGB values are saved as the background color.
+* `profile id`: The index of the profile within EEPROM to save to. Valid values are 0 to 15. Ignored when `setbg=1'b1`.
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
 
 
-### IR Command: Change Group
+### IR Command: Set Group Sel / Change Group
 Change the PixMob device's group by setting the `group sel` field in EEPROM.
 
 Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
@@ -428,8 +434,8 @@ Special Cases:
 * If `new group id=0`, the command will be discarded and nothing changed in EEPROM.
 
 
-### IR Command: Set Post-Release Time
-Set the LED post-release phase time. The corresponding value is also saved to EEPROM.
+### IR Command: Set Repeat Delay Time
+Set the LED repeat delay phase time. The value is saved to the EEPROM at address 0x02.
 
 Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
@@ -442,7 +448,7 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x05 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x06 |    0    |    0    |    X    |    X    |    X    |      post-release time      |
+0x06 |    0    |    0    |    X    |    X    |    X    |            delay            |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    0    |    1    |    1    |    1    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
@@ -451,12 +457,12 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 ```
 
 Fields:
-* `post-release time`: Time to spend in the LED post-release phase. Has the same lookup key as [IR Command Fields: Attack, Sustain, and Release](#ir-command-fields-attack-sustain-and-release).
+* `delay`: Time to spend in the LED repeat delay phase. Has the same lookup key as [IR Command Fields: Attack, Sustain, and Release](#ir-command-fields-attack-sustain-and-release).
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
 
 
-### IR Command: Write to EEPROM address 0x03
-Writes the specified data to EEPROM address 0x03. Exact functionality of this field is still under investigation.
+### IR Command: Set Repeat Count
+Set the LED repeat count. The value is saved to the EEPROM at address 0x03.
 
 Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
@@ -467,9 +473,9 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x04 |    0    |    0    |    X    |    X    |    X    |    X    |    X    |    X    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x05 |    0    |    0    |                         data[5:0]                         |
+0x05 |    0    |    0    |                     repeat count[5:0]                     |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x06 |    0    |    0    |    X    |    X    |    X    |    X    |     data[7:6]     |
+0x06 |    0    |    0    |    X    |    X    |    X    |    X    | repeat count[7:6] |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    1    |    0    |    0    |    0    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
@@ -478,7 +484,7 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 ```
 
 Fields:
-* `data`: Data to be written to EEPROM address 0x03. Details still under investigation.
+* `repeat count`: Number of times to repeat a color.
 * `restrict group id`: See [IR Command Fields: Restrict Group ID](#ir-command-fields-restrict-group-id)
 
 
@@ -541,7 +547,7 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 ```
 
 Fields:
-* `/grst`: When set to 1'b0, in addition to turning off LEDs and clearing the CFG memories, the [global post-release color](#global-post-release-color) is cleared, the EEPROM data at addresses 0x02 and 0x03 are reset back to zero (post-reset time and currently-unknown field), and the [global sustain time](#global-sustain-time-gst) is reset to 480ms.
+* `/grst`: When set to 1'b0, in addition to turning off LEDs and clearing the CFG memories, the background color is cleared, the EEPROM data at addresses 0x02 and 0x03 are reset back to zero (`repeat delay` and `repeat count`), and the [global sustain time](#global-sustain-time-gst) is reset to 480ms.
 
 
 ### IR Command Fields: Attack, Sustain, and Release
@@ -560,7 +566,7 @@ The terms attack, sustain, and release are used to describe the LED fade-in time
 
 Special Cases:
 * If `sustain=3'b111` and `release!=3'b000`, then the sustain timer is set from [GST memory](#global-sustain-time-gst).
-* If `release=3'b000`, then some type of multiplier is applied to the sustain time. Exact details are still under investigation.
+* If `release=3'b000`, then some type of multiplier is applied to the sustain time and the background color is set to the color from the command. Exact details are still under investigation.
 
 
 ### IR Command Fields: Chance

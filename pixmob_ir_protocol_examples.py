@@ -145,6 +145,86 @@ for ir_command in group_id_commands:
 
 
 #
+# Repeat Effect
+#
+# These commands will cause a color effect to be repeated a defined
+# number of times.
+#
+print("\n\nRepeat Effect")
+repeat_commands = [
+    # Configure a delay of 480ms between each effect repetition
+    pmir.CommandSetRepeatDelayTime(repeat_delay=pmir.Time.TIME_480_MS),
+
+    # Repeat 5 times
+    pmir.CommandSetRepeatCount(repeat_count=5),
+
+    # Effect with repeat enabled
+    pmir.CommandSingleColorExt(
+        red=0x00, green=0x40, blue=0x80,
+        enable_repeat=True
+    ),
+]
+for ir_command in repeat_commands:
+    print(ir_command.encode())
+
+
+#
+# Background Color
+#
+# This will set a background color that is displayed when no active
+# effect is currently being run.
+#
+print("\n\nBackground Color")
+background_commands = [
+    # Configure the background color as purple
+    pmir.CommandSetColor(
+        red=0x40, green=0x00, blue=0x40,
+        is_background=True,
+        skip_display=True
+    ),
+
+    # Now send a green color effect
+    # After the green effect finishes, it should transition to the background color
+    pmir.CommandSingleColorExt(red=0x00, green=0x40, blue=0x00),
+]
+for ir_command in background_commands:
+    print(ir_command.encode())
+
+
+#
+# Two Color Cycle (Combined Repeat Effect + Background Color)
+#
+# We can achieve a two-color cycle by switching between an effect color and
+# a background color in a repeat loop.
+#
+print("\n\nTwo Color Cycle (Combined Repeat Effect + Background Color)")
+two_color_cycle_commands = [
+    # Configure a delay of 480ms between each effect repetition
+    pmir.CommandSetRepeatDelayTime(repeat_delay=pmir.Time.TIME_480_MS),
+
+    # Repeat 5 times
+    pmir.CommandSetRepeatCount(repeat_count=5),
+
+    # Configure the background color as purple
+    pmir.CommandSetColor(
+        red=0x40, green=0x00, blue=0x40,
+        is_background=True,
+        skip_display=True
+    ),
+
+    # Now send a green color effect
+    # It should alternate between the green and purple 5 times total
+    # After the last repetition, it will remain on purple (the background color)
+    pmir.CommandSingleColorExt(
+        red=0x00, green=0x40, blue=0x00,
+        enable_repeat=True
+    ),
+]
+for ir_command in two_color_cycle_commands:
+    print(ir_command.encode())
+
+
+#
 # Factory Reset
 #
 # These series of commands attempts to factory reset the PixMob's EEPROM
@@ -167,11 +247,9 @@ factory_reset_commands = [
     pmir.CommandSetGroupId(group_sel=6, new_group_id=1),
     pmir.CommandSetGroupId(group_sel=7, new_group_id=1),
 
-    # Set EEPROM[0x03] = 0x01, functionality TBD
-    pmir.CommandSetEEPROM3(eeprom_data=0x01),
-
-    # Set post-release time (EEPROM[0x02]) = 0x00
-    pmir.CommandSetPostReleaseTime(post_release=pmir.Time.TIME_0_MS),
+    # Clear repeat delay & counts
+    pmir.CommandSetRepeatDelayTime(repeat_delay=pmir.Time.TIME_0_MS),
+    pmir.CommandSetRepeatCount(repeat_count=1),
 
     # Set the default color profiles
     pmir.CommandSetColor(red=0xBF, green=0x00, blue=0x00, profile_id=0, skip_display=True),
@@ -203,6 +281,8 @@ factory_reset_commands = [
     # Now disable on-start by sending a blank color
     pmir.CommandSingleColor(red=0, green=0, blue=0, on_start=False)
 ]
+for ir_command in factory_reset_commands:
+    print(ir_command.encode())
 
 
 #
