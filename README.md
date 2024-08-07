@@ -220,7 +220,7 @@ All PixMob IR commands begin with the same 3-byte header, with the first byte be
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x01 |                                   checksum                                    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x02 |    0    |    0    |   ???   |  gsten  |       type        |  /rgb   | onstrt  |
+0x02 |    0    |    0    |   ???   |  gsten  |            type             | onstrt  |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 ```
 
@@ -229,14 +229,13 @@ Starting from the command byte located at offset 0x02, only the lower 6 bits of 
 Fields:
 * `gsten`: At least one of its functions is to override the sustain time from [GST memory](#global-sustain-time-gst). Exact details still under investigation.
 * `type`: In conjunction with the total length of the command, determines the format of the command body.
-* `/rgb`: Generally set to 1'b0 for commands that result in a color being displayed and set to 1'b1 for other commands. Exact details still under investigation.
 * `onstrt`: Set to 1'b1 to enable (or keep enabled) the "on-start" effect. If the "on-start" effect is currently enabled and a command is received with `onstrt=0`, the "on-start" effect will be disabled.
 
 
 ### IR Command: Set Cycle Options
 Set color profile cycle options into CFG0 memory. If flags `onstrt=1'b1`, the updated CFG0 memory is also saved to the EEPROM.
 
-Flags: `type=2'b00`, `/rgb=1'b1`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
+Flags: `type=3'b001`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
 
 ```
           7         6         5         4         3         2         1         0     
@@ -260,7 +259,7 @@ Briefly display a single color.
 
 The RGB values will be stored in CFG0 memory's static profile. The attack and release timers are always 0ms and 32ms, respectively. If `gsten=1'b1`, then the sustain time is set from [GST memory](#global-sustain-time-gst). Otherwise, sustain time is set at 384ms.
 
-Flags: `type=2'b00`, `/rgb=1'b0`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
+Flags: `type=3'b000`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
 
 ```
           7         6         5         4         3         2         1         0     
@@ -282,7 +281,7 @@ Briefly display a single color, but with additional configurable fields such as 
 
 The RGB values along with the attack, sustain, and release timers will be stored in CFG0 memory.
 
-Flags: `type=2'b00`, `/rgb=1'b0`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
+Flags: `type=3'b000`, (`onstrt=1'b1` and `gsten=1'b1`) or (`onstrt=1'b0` and `gsten=1'bX`)
 
 ```
           7         6         5         4         3         2         1         0     
@@ -312,7 +311,7 @@ Color 1 is briefly displayed for approximately 25ms with no attack or release ti
 
 The attack and release timers on Color 2 are always set at 32ms. If `gsten=1'b1`, then the sustain time for Color 2 is set from [GST memory](#global-sustain-time-gst). Otherwise, sustain time for Color 2 is set at 384ms.
 
-Flags: `type=2'b01`, `/rgb=1'b0`, `onstrt=1'b0`, `gsten=1'bX`
+Flags: `type=3'b010`, `onstrt=1'b0`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
@@ -335,7 +334,7 @@ Flags: `type=2'b01`, `/rgb=1'b0`, `onstrt=1'b0`, `gsten=1'bX`
 ### IR Command: Set Color Profile
 Set RGB color profile.
 
-Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
@@ -364,7 +363,7 @@ Fields:
 ### IR Command: Change Group
 Change the PixMob device's group by setting the `group sel` field in EEPROM.
 
-Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
@@ -396,7 +395,7 @@ Fields:
 ### IR Command: Set Group ID
 Set one of eight group ids in the EEPROM.
 
-Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
@@ -432,7 +431,7 @@ Special Cases:
 ### IR Command: Set Post-Release Time
 Set the LED post-release phase time. The corresponding value is also saved to EEPROM.
 
-Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
@@ -459,7 +458,7 @@ Fields:
 ### IR Command: Write to EEPROM address 0x03
 Writes the specified data to EEPROM address 0x03. Exact functionality of this field is still under investigation.
 
-Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
@@ -486,7 +485,7 @@ Fields:
 ### IR Command: Set GST
 Set the [Global Sustain Time (GST)](#global-sustain-time-gst) memory.
 
-Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
@@ -522,7 +521,7 @@ Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
 ### IR Command: LED Off and Reset
 Interrupt the current operation; turn off LEDs; clear CFG0, CFG1, and CFG2; and optionally, reset certain global settings.
 
-Flags: `type=2'b11`, `/rgb=1'b1`, `onstrt=1'b1`, `gsten=1'bX`
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 
 ```
           7         6         5         4         3         2         1         0     
