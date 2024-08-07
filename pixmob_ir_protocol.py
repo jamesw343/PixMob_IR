@@ -168,7 +168,6 @@ class Command:
 
         verify_checksum: Validate the checksum with the expected checksum. Fails if
                          there is a checksum mismatch.
-        exact_match:     Expect an exact match.
         """
         encoded_bytes = [0]
         num_leading_zeroes = 0
