@@ -203,3 +203,14 @@ factory_reset_commands = [
     # Now disable on-start by sending a blank color
     pmir.CommandSingleColor(red=0, green=0, blue=0, on_start=False)
 ]
+
+
+#
+# Decode Commands
+#
+# The decode feature allows you to input an IR string and figure out which command it maps to
+#
+print("\n\nDecode Commands")
+encoded_bits = [1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1]
+print(f"Encoded Bits:    {encoded_bits}")
+print(f"Decoded Command: {pmir.Command.decode(encoded_bits)}")
