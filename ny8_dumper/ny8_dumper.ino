@@ -1,12 +1,18 @@
-#define PIN_SDI 2
-#define PIN_SDO 3
-#define PIN_SCK 4
-#define PIN_VDD 5
+#define PIN_SDI         2
+#define PIN_SDO         3
+#define PIN_SCK         4
+#define PIN_VDD         5
+#define PIN_VPP_SENSE   6
+
+// If dumping the MCU is unsuccessful without Vpp, try re-running
+// with this set to 1. Follow README.md for hardware setup details.
+#define MCU_REQUIRES_VPP 0
 
 static_assert(PIN_SCK < 8);
 static_assert(PIN_SDI < 8);
 static_assert(PIN_SDO < 8);
 static_assert(PIN_VDD < 8);
+static_assert(PIN_VPP_SENSE < 8);
 
 #define SET_PIN_HIGH(pin)   (PORTD |= 1 << (pin))
 #define SET_PIN_LOW(pin)    (PORTD &= ~(1 << (pin)))
@@ -110,6 +116,10 @@ void setup()
     pinMode(PIN_SCK, OUTPUT);
     pinMode(PIN_VDD, OUTPUT);
 
+#if MCU_REQUIRES_VPP
+    pinMode(PIN_VPP_SENSE, INPUT);
+#endif
+
     SET_PIN_LOW(PIN_VDD);
 
     Serial.begin(115200);
@@ -117,8 +127,15 @@ void setup()
 
 void loop()
 {
+#if MCU_REQUIRES_VPP
+    Serial.println("Ready. Waiting for VPP sense...");
+    // Wait in loop (debounce) until VPP_SENSE pin goes high
+    for (int i = 0; i < 10; i++) {
+        while (GET_PIN(PIN_VPP_SENSE) == 0);
+    }
+#else
     Serial.println("Ready. Press enter to run.");
-
+    // Wait for trigger from serial console
     while (true) {
         if (Serial.available() > 0) {
             int c = Serial.read();
@@ -134,6 +151,7 @@ void loop()
             }
         }
     }
+#endif
 
     Serial.println("Begin EPROM extraction ...\r\n");
 
@@ -148,21 +166,37 @@ void loop()
 
     // Handshake
     ny8_send_handshake();
-    DELAY_MILLI(10);
 
-    // EPROM extraction
-    ny8_dump_eprom();
+    // Wait 100 milliseconds to determine whether the handshake succeeded.
+    // Under normal operation, the MCU starts running the program about
+    // 62 milliseconds after power-on. If programming handshake is successful,
+    // the MCU enters a special mode and the user program is not started.
+    DELAY_MILLI(100);
 
-    // If running multiple commands, send a command separator
-    // between each command
-    ny8_send_command_separator();
+    if (GET_PIN(PIN_SDO)) {
+        // Handshake unsuccessful
+        // SDO (shared with a PWM output) has become PWM active high
+        Serial.println("EPROM dump failed: handshake unsuccessful.\r\n\r\n");
+    } else {
+        // EPROM extraction
+        ny8_dump_eprom();
 
-    DELAY_MILLI(50);
+        // If running multiple commands, send a command separator
+        // between each command
+        ny8_send_command_separator();
+
+        Serial.println("Done!\r\n\r\n");
+    }
 
     // Power off
     SET_PIN_LOW(PIN_VDD);
 
     interrupts();
 
-    Serial.println("Done!\r\n\r\n");
+#if MCU_REQUIRES_VPP
+    // Wait in loop (debounce) until VPP_SENSE pin goes low
+    for (int i = 0; i < 10; i++) {
+        while (GET_PIN(PIN_VPP_SENSE) != 0);
+    }
+#endif
 }
