@@ -524,6 +524,32 @@ Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
 | 3'b111 |        3,840        |
 
 
+### IR Command: Display Single Color (12-Bit RGB)
+Another command to display a single color, except uses 12-bit RGB instead of 18-bit RGB.
+
+Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`
+
+```
+          7         6         5         4         3         2         1         0     
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x03 |    0    |    0    |     red[5:4]      |               green[7:4]              |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x04 |    0    |    0    |               blue[7:4]               |     red[7:6]      |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x05 |    0    |    0    |    X    |    X    |    X    |    0    |    0    |    1    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x06 |    0    |    0    |    0    |    0    |    1    |    0    |    0    |    0    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x07 |    0    |    0    |    0    |    0    |    1    |    1    |    0    |    0    |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+0x08 |    0    |    0    |    X    |                restrict group id                |
+     +---------+---------+---------+---------+---------+---------+---------+---------+
+```
+
+Fields:
+* `green`, `red`, and `blue` is a compacted 12-bit RGB that is copied into CFG0 memory.
+
+
 ### IR Command: LED Off and Reset
 Interrupt the current operation; turn off LEDs; clear CFG0, CFG1, and CFG2; and optionally, reset certain global settings.
 

@@ -478,6 +478,21 @@ class CommandSetGlobalSustainTime(Command):
     }
 
 
+class CommandSingleColor12Bit(Command):
+    _num_bytes  = 9
+    _flags_type = 0b111
+    _action_id  = 12
+    _fields = {
+        'on_start':         _Field([_FieldFragment(byte=2, offset=0, width=1)], bool, default=True, read_only=True),
+        'gst_enable':       _Field([_FieldFragment(byte=2, offset=4, width=1)], bool, default=False),
+        'green':            _Field([_FieldFragment(byte=3, offset=0, width=4, src_offset=4)], int, default=0),
+        'red':              _Field([_FieldFragment(byte=3, offset=4, width=2, src_offset=4),
+                                    _FieldFragment(byte=4, offset=0, width=2, src_offset=6)], int, default=0),
+        'blue':             _Field([_FieldFragment(byte=4, offset=2, width=4, src_offset=4)], int, default=0),
+        '_byte_5':          _Field([_FieldFragment(byte=5, offset=0, width=6)], int, default=0b000001, read_only=True),
+        '_byte_6':          _Field([_FieldFragment(byte=6, offset=0, width=6)], int, default=0b001000, read_only=True),
+    }
+
 class CommandSetOffReset(Command):
     _num_bytes  = 9
     _flags_type = 0b111
