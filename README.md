@@ -550,7 +550,7 @@ Fields:
 * `green`, `red`, and `blue` is a compacted 12-bit RGB that is copied into CFG0 memory.
 
 
-### IR Command: LED Off and Reset
+### IR Command: Do Reset
 Interrupt the current operation; turn off LEDs; clear CFG0, CFG1, and CFG2; and optionally, reset certain global settings.
 
 Flags: `type=3'b111`, `onstrt=1'b1`, `gsten=1'bX`

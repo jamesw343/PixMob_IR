@@ -493,7 +493,7 @@ class CommandSingleColor12Bit(Command):
         '_byte_6':          _Field([_FieldFragment(byte=6, offset=0, width=6)], int, default=0b001000, read_only=True),
     }
 
-class CommandSetOffReset(Command):
+class CommandDoReset(Command):
     _num_bytes  = 9
     _flags_type = 0b111
     _action_id  = 15

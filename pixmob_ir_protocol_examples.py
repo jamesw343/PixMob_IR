@@ -233,6 +233,7 @@ for ir_command in two_color_cycle_commands:
 # Potentially useful if you were messing around with different IR commands
 # that may have affected settings in the EEPROM.
 #
+print("\n\nFactory Reset:")
 factory_reset_commands = [
     # Set group sel to 0
     pmir.CommandSetGroupSel(group_sel=0),
@@ -246,10 +247,6 @@ factory_reset_commands = [
     pmir.CommandSetGroupId(group_sel=5, new_group_id=1),
     pmir.CommandSetGroupId(group_sel=6, new_group_id=1),
     pmir.CommandSetGroupId(group_sel=7, new_group_id=1),
-
-    # Clear repeat delay & counts
-    pmir.CommandSetRepeatDelayTime(repeat_delay=pmir.Time.TIME_0_MS),
-    pmir.CommandSetRepeatCount(repeat_count=1),
 
     # Set the default color profiles
     pmir.CommandSetColor(red=0xBF, green=0x00, blue=0x00, profile_id=0, skip_display=True),
@@ -269,17 +266,8 @@ factory_reset_commands = [
     pmir.CommandSetColor(red=0x00, green=0x00, blue=0x00, profile_id=14, skip_display=True),
     pmir.CommandSetColor(red=0xBF, green=0xBF, blue=0xBF, profile_id=15, skip_display=True),
 
-    # Set the default RGB config
-    pmir.CommandSetConfig(
-        on_start=True, gst_enable=True,
-        profile_id_lo=0, profile_id_hi=7, is_random=True,
-        attack=pmir.Time.TIME_480_MS,
-        sustain=pmir.Time.TIME_480_MS,
-        release=pmir.Time.TIME_480_MS
-    ),
-
-    # Now disable on-start by sending a blank color
-    pmir.CommandSingleColor(red=0, green=0, blue=0, on_start=False)
+    # Do Reset
+    pmir.CommandDoReset(nreset=True),
 ]
 for ir_command in factory_reset_commands:
     print(ir_command.encode())
