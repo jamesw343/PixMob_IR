@@ -7,7 +7,7 @@ This project primarily focuses on reverse engineering and documenting the modes 
 
 
 ## Devices Models
-The table below documents the different IR-based PixMob devices analyzed for this project. The core hardware generally consists of an unmarked MCU (later found to be a Nyquest NY8A0854ES8) in a SOP-8 package, an I2C EEPROM in a SOT23 package, a 38 kHz IR receiver, and RGB LEDs.
+The table below documents the different IR-based PixMob devices analyzed for this project. The core hardware generally consists of an unmarked MCU (later found to be a Nyquest NY8A054ES8) in a SOP-8 package, an I2C EEPROM in a SOT23 package, a 38 kHz IR receiver, and RGB LEDs.
 
 | Model | Power<br />Source |  PCB  | Firmware |
 | :---: | :---------------: | :---: | :------: |
