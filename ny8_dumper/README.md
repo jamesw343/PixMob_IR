@@ -86,7 +86,7 @@ Begin EPROM extraction ...
 
 # Analyzing Firmware
 
-Now, the output can be converted into binary and analyzed in [Ghidra](https://github.com/NationalSecurityAgency/ghidra) with the [Ghidra NY8A054E Processor](https://github.com/Lyphiard/Ghidra_NY8A054E).
+Now, the output can be converted into binary and analyzed in [Ghidra](https://github.com/NationalSecurityAgency/ghidra) with the [Ghidra NY8A054E Processor](https://github.com/jamesw343/Ghidra_NY8A054E).
 
 ```bash
 $ cat pixmob_firmware.hex
