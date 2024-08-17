@@ -83,7 +83,7 @@ The high-level layout of the EEPROM is as follows (each cell in the diagram is 8
 
 | Address | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Field&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Field Description |
 | :---: | :---: | :--- |
-| 0x00 | `EEPROM:version` | <p>A constant value that is specific to the firmware version running on the PixMob MCU. An unexpected value here will cause the MCU to overwrite the first 88 used bytes of the EEPROM back to factory defaults. |
+| 0x00 | `EEPROM:version` | <p>A constant value that is specific to the firmware running on the PixMob MCU. Generally this has observed to been 0x01 + firmware version (see [Device Models](../README.md#devices-models)).<br /><br />An unexpected value here will cause the MCU to overwrite the first 88 used bytes of the EEPROM back to factory defaults. |
 | 0x01 | `EEPROM:group_sel` | Lower 3 bits are used to select one of eight group id values (located in EEPROM addresses 0x08 through 0x0F) to determine the PixMob's group identity. Upper 5 bits are ignored. |
 | 0x02 | `EEPROM:repeat_delay` | Delay time between repetitions of an effect, used when repeat mode is enabled. Value is in milliseconds with a 16ms multiplier (for example, a value of 0x1E would be 480ms). |
 | 0x03 | `EEPROM:repeat_count` | Total number of repetitions of an effect to perform before stopping, used when repeat mode is enabled. |
@@ -96,7 +96,7 @@ The high-level layout of the EEPROM is as follows (each cell in the diagram is 8
 ## EEPROM Factory Defaults
 An unexpected `EEPROM:version` value will cause the MCU to reset the 88 usable bytes of EEPROM to factory defaults.
 
-Factory defaults for the PixMob PALM v2.6r1 and PixMob VIC v2.3r1 using `24C02` EEPROMs and firmware with `EEPROM:version=0x09`:
+Factory defaults for the PixMob PALM v2.6r1 and PixMob VIC v2.3r1 using `24C02` EEPROMs and firmware with `EEPROM:version=0x09` (firmware version 0x08):
 ```
 0x09 0x00 0x00 0x01
 0x00 0x00 0x00 0x00
@@ -122,7 +122,7 @@ Factory defaults for the PixMob PALM v2.6r1 and PixMob VIC v2.3r1 using `24C02` 
 0x1E 0x1E 0x70 0x06
 ```
 
-Factory defaults for the PixMob VIC v2.3r1 using `AKI**` EEPROMs and firmware with `EEPROM:version=0x07`:
+Factory defaults for the PixMob VIC v2.3r1 using `AKI**` EEPROMs and firmware with `EEPROM:version=0x07` (firmware version 0x06):
 ```
 0x07 0x00 0x00 0x01
 0x00 0x00 0x00 0x00

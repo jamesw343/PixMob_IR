@@ -310,8 +310,8 @@ Flags: `type=3'b111`, `onstrt=1`, `gsten=X`
 | 3'b111 |        3,840        |
 
 
-### IR Command: Display Single Color (12-Bit RGB)
-Another command to display a single color, except uses 12-bit RGB instead of 18-bit RGB.
+### IR Command: Identify Firmware Version
+Conditionally display the specified RGB color if and only if the PixMob is running the specified firmware version.
 
 Flags: `type=3'b111`, `onstrt=1`, `gsten=X`
 
@@ -324,7 +324,7 @@ Flags: `type=3'b111`, `onstrt=1`, `gsten=X`
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x05 |    0    |    0    |    X    |    X    |    X    |    0    |    0    |    1    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
-0x06 |    0    |    0    |    0    |    0    |    1    |    0    |    0    |    0    |
+0x06 |    0    |    0    |                     firmware version                      |
      +---------+---------+---------+---------+---------+---------+---------+---------+
 0x07 |    0    |    0    |    0    |    0    |    1    |    1    |    0    |    0    |
      +---------+---------+---------+---------+---------+---------+---------+---------+
@@ -333,7 +333,8 @@ Flags: `type=3'b111`, `onstrt=1`, `gsten=X`
 ```
 
 Fields:
-* `green`, `red`, and `blue` is a compacted 12-bit RGB that is copied into CFG0 memory.
+* `green`, `red`, and `blue` is a compacted 12-bit RGB that is copied into `MCU:cfg0`.
+* `firmware version`: Check [Device Models](../README.md#devices-models) for PCB and firmware version combinations.
 
 
 ### IR Command: Do Reset
