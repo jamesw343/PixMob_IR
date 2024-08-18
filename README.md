@@ -9,13 +9,13 @@ This project primarily focuses on reverse engineering and documenting the modes 
 ## Devices Models
 The table below documents the different IR-based PixMob devices analyzed for this project. The core hardware generally consists of an unmarked MCU (later found to be a Nyquest NY8A054ES8) in a SOP-8 package, an I2C EEPROM in a SOT23 package, a 38 kHz IR receiver, and RGB LEDs.
 
-| Model | Power<br />Source |  PCB  | Firmware Version |
-| :---: | :---------------: | :---: | :--------------: |
-| | | PALM v2.1 (c) 20210725 | 0x01 |
-| | | AURORA v1.7 (c) 20211027 | 0x02 |
-| NOVA | | FRENCH VANILLA v3.1 (c) 20210920 | 0x05 |
-| X2 | 2x CR2032<br />3V Batteries | <img src="docs/images/pixmob_vic_v2.3r1_20211206.jpg" width="300" alt="Photo of PixMob VIC v2.3r1 (c) 20211206 PCB"><br />VIC v2.3r1 (c) 20211206 | 0x06<br /> -or- <br />0x08 |
-| X2 | 2x CR1632<br />3V Batteries | <img src="docs/images/pixmob_palm_v2.6r1_20230629.jpg" width="300" alt="Photo of PixMob PALM v2.6r1 (c) 20230629 PCB"><br />PALM v2.6r1 (c) 20230629 | 0x08 |
+| Model | Power<br />Source                          | PCB                              | Firmware Version |
+| :---: | :----------------------------------------: | :-------------------------------:| :----: |
+| X2{    | 2x CR1632<br />3V Batteries                | PALM v2.1 (c) 20210725           | 0x01 |
+| X4    | 2x AAA <br />1.5v Batteries                | AURORA v1.7 (c) 20211027         | 0x02 |
+| NOVA  | 3.7v Li-ion<br />Rechargeable<br />Battery | FRENCH VANILLA v3.1 (c) 20210920 | 0x05 |
+| X2    | 2x CR1632<br />3v Batteries                | <img src="docs/images/pixmob_vic_v2.3r1_20211206.jpg" width="300" alt="Photo of PixMob VIC v2.3r1 (c) 20211206 PCB"><br />VIC v2.3r1 (c) 20211206     | 0x06<br /> -or- <br />0x08 |
+| X2    | 2x CR1632<br />3v Batteries                | <img src="docs/images/pixmob_palm_v2.6r1_20230629.jpg" width="300" alt="Photo of PixMob PALM v2.6r1 (c) 20230629 PCB"><br />PALM v2.6r1 (c) 20230629  | 0x08 |
 
 > [!NOTE]
 > While the basic commands in PixMob's IR protocol are generally stable, some features may have varying levels of support from device-to-device.
