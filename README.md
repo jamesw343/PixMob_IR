@@ -137,13 +137,13 @@ The table below documents the different IR-based PixMob devices analyzed for thi
 
 
 
-| Model | Power<br />Source | PCB | Firmware Version |
-| :---: | :---------------: | :---: | :--------------: |
-| X2    | 2x CR1632<br />3V Batteries | PALM v2.1 (c) 20210725 | 0x01 |
-| X4    | 2x AAA <br />1.5v Batteries| AURORA v1.7 (c) 20211027 | 0x02 |
-| NOVA  | 3.7v Li-ion <br />Rechargeable <br />Battery | FRENCH VANILLA v3.1 (c) 20210920 | 0x05 |
-| X2    | 2x CR1632<br />3v Batteries | <img src="docs/images/pixmob_vic_v2.3r1_20211206.jpg" width="300" alt="Photo of PixMob VIC v2.3r1 (c) 20211206 PCB"><br />VIC v2.3r1 (c) 20211206 | 0x06<br /> -or- <br />0x08 |
-| X2    | 2x CR1632<br />3v Batteries | <img src="docs/images/pixmob_palm_v2.6r1_20230629.jpg" width="300" alt="Photo of PixMob PALM v2.6r1 (c) 20230629 PCB"><br />PALM v2.6r1 (c) 20230629 | 0x08 |
+| Model | Power<br />Source                          | PCB                              | Firmware Version |
+| :---: | :----------------------------------------: | :-------------------------------:| :----: |
+| X2    | 2x CR1632<br />3V Batteries                | PALM v2.1 (c) 20210725           | 0x01 |
+| X4    | 2x AAA <br />1.5v Batteries                | AURORA v1.7 (c) 20211027         | 0x02 |
+| NOVA  | 3.7v Li-ion<br />Rechargeable<br />Battery | FRENCH VANILLA v3.1 (c) 20210920 | 0x05 |
+| X2    | 2x CR1632<br />3v Batteries                | <img src="docs/images/pixmob_vic_v2.3r1_20211206.jpg" width="300" alt="Photo of PixMob VIC v2.3r1 (c) 20211206 PCB"><br />VIC v2.3r1 (c) 20211206     | 0x06<br /> -or- <br />0x08 |
+| X2    | 2x CR1632<br />3v Batteries                | <img src="docs/images/pixmob_palm_v2.6r1_20230629.jpg" width="300" alt="Photo of PixMob PALM v2.6r1 (c) 20230629 PCB"><br />PALM v2.6r1 (c) 20230629  | 0x08 |
 
 
 
@@ -160,4 +160,3 @@ mentation of PixMob's effects and helping me test effects on a wider variety of 
 * [@danielweidman](https://github.com/danielweidman), [danielweidman/pixmob-ir-reverse-engineering](https://github.com/danielweidman/pixmob-ir-reverse-engineering/), and contributors for effect definitions and Arduino IR sender program
 
 For more PixMob-related projects, check out the PixMob reverse engineering discord server: [https://discord.gg/UYqTjC7xp3](https://discord.gg/UYqTjC7xp3)
-l
