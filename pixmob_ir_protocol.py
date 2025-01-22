@@ -1,5 +1,4 @@
 import enum
-import sys
 
 
 class Chance(enum.Enum):
